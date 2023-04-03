@@ -1,7 +1,21 @@
 import pandas as pd
 import numpy as np
+import json
 
-d = ("""100 3.5562 1.032 71.1 2.00 9.34 2.54 0.786
+def lambda_handler(event, context):
+    T = 0.0
+    body = json.loads(event["body"])
+    try:
+        T = float(body["temperature"])
+    finally:
+        return {
+            'statusCode': 200,
+            'body': interpolate(T).to_json()
+        }
+
+def interpolate(T):
+
+    d = ("""100 3.5562 1.032 71.1 2.00 9.34 2.54 0.786
 150 2.3364 1.012 103.4 4.426 13.8 5.84 0.758
 200 1.7458 1.007 132.5 7.590 18.1 10.3 0.737
 250 1.3947 1.006 159.6 11.44 22.3 15.9 0.720
@@ -37,55 +51,46 @@ d = ("""100 3.5562 1.032 71.1 2.00 9.34 2.54 0.786
 2500 0.1389 1.665 818 589 222 960 0.613
 3000 0.1135 2.726 955 841 486 1570 0.536""")
 
-table_cols = ['T [K]','ρ [kg/m3]','Cp (kJ/kg*K)',
-              'µe7 [Ns/m2]','νe6 [m2/s]','ke3 [w/mK]',
-              'αe6 [m2/s]','Pr']
+    table_cols = ['T [K]','ρ [kg/m3]','Cp (kJ/kg*K)',
+                'µe7 [Ns/m2]','νe6 [m2/s]','ke3 [w/mK]',
+                'αe6 [m2/s]','Pr']
 
-d = d.split('\n')
-datalist = []
+    d = d.split('\n')
+    datalist = []
 
-for piece in d:
-    #print(f"piece = {piece}")
-    #print(f"type = {type(piece)}")
-    arr = [float(s) for s in piece.split(' ')]
-    datalist.append(arr)
+    for piece in d:
+        #print(f"piece = {piece}")
+        #print(f"type = {type(piece)}")
+        arr = [float(s) for s in piece.split(' ')]
+        datalist.append(arr)
 
-datalist = np.asarray(datalist)
-df = pd.DataFrame(datalist, columns=table_cols)
-#print(np.shape(datalist))
-#print(df)
+    datalist = np.asarray(datalist)
+    df = pd.DataFrame(datalist, columns=table_cols)
+    #print(np.shape(datalist))
+    #print(df)
 
-temperatures = df['T [K]']
+    temperatures = df['T [K]']
 
-while True:
-    T = input("Please input a temperature: ")
-    try:
-        T = float(T)
-        break
-    except ValueError:
-        print("Please input a number.")
 
-for idx, temp in enumerate(temperatures):
-    #print(f"item {idx} = {temp}")50
-    if T == temp:
-        #print(f"T = Temp at {idx}: {temp}\n ")
-        print(df.iloc[[idx]])
-        break
-    elif T < temp:
-        #print(f"T < Temp at {idx}: {temp}\n ")
-        bot = temperatures[idx-1]
-        #print(f"bounds = {bot, temp}")
-        interp_data = {}
-        slope = (T - bot)/(temp - bot)
-        #print(f"slope = {slope}")
-        for column, label in zip(df, table_cols):
-            col = df[column]
-            interp_val = col[idx-1] + slope*(col[idx] - col[idx-1])
-            interp_data[label] = round(interp_val, 4)
+    for idx, temp in enumerate(temperatures):
+        #print(f"item {idx} = {temp}")50
+        if T == temp:
+            #print(f"T = Temp at {idx}: {temp}\n ")
+            return df.iloc[[idx]]
+        elif T < temp:
+            #print(f"T < Temp at {idx}: {temp}\n ")
+            bot = temperatures[idx-1]
+            #print(f"bounds = {bot, temp}")
+            interp_data = {}
+            slope = (T - bot)/(temp - bot)
+            #print(f"slope = {slope}")
+            for column, label in zip(df, table_cols):
+                col = df[column]
+                interp_val = col[idx-1] + slope*(col[idx] - col[idx-1])
+                interp_data[label] = round(interp_val, 4)
 
-        idf = pd.DataFrame([interp_data])
-        print(idf)
-        break
-    
+            idf = pd.DataFrame([interp_data])
+            return idf
+        
 
 
